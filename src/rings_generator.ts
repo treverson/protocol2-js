@@ -26,7 +26,7 @@ export class RingsGenerator {
     for (const order of rings.orders) {
       order.hash = this.orderUtil.getOrderHash(order);
       if (order.sig === undefined) {
-        order.sig = await this.multiHashUtil.signOrderAsync(order);
+        order.sig = await this.multiHashUtil.signOrderAsync(this.context.web3, order);
       }
     }
 
@@ -68,7 +68,7 @@ export class RingsGenerator {
       rings.sig = undefined;
     } else {
       if (rings.sig === undefined) {
-        rings.sig = await this.multiHashUtil.signAsync(rings.signAlgorithm, rings.hash, miner);
+        rings.sig = await this.multiHashUtil.signAsync(this.context.web3, rings.signAlgorithm, rings.hash, miner);
       }
     }
 
@@ -77,6 +77,7 @@ export class RingsGenerator {
       if (order.dualAuthSig === undefined) {
         if (order.dualAuthAddr) {
           order.dualAuthSig = await this.multiHashUtil.signAsync(
+            this.context.web3,
             order.dualAuthSignAlgorithm,
             rings.hash,
             order.dualAuthAddr,

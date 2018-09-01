@@ -1,3 +1,4 @@
+import assert = require("assert");
 import { BigNumber } from "bignumber.js";
 import BN = require("bn.js");
 import abi = require("ethereumjs-abi");

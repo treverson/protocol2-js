@@ -8,7 +8,7 @@
     "url": "https://github.com/Loopring/protocol2-js"
   },
   "scripts": {
-    "test": "mocha -r ts-node/register test/**/*.ts",
+    "test": "mocha -r ts-node/register test/**/*.ts  --timeout 240000",
     "compile": "tsc -p .",
     "fix": "gts fix",
     "prepare": "npm run compile",

@@ -1,22 +1,18 @@
 import fs = require("fs");
+import { Contracts } from "./contracts";
 import { Tax } from "./tax";
+import Web3 = require("web3");
 
 export class Context {
+
+  public contracts: Contracts;
+  public web3: Web3;
 
   public blockNumber: number;
   public blockTimestamp: number;
   public lrcAddress: string;
   public tax: Tax;
   public feePercentageBase: number;
-
-  public ERC20Contract: any;
-  public TokenRegistryContract: any;
-  public TradeDelegateContract: any;
-  public BrokerRegistryContract: any;
-  public OrderRegistryContract: any;
-  public MinerRegistryContract: any;
-  public BrokerInterceptorContract: any;
-  public FeeHolderContract: any;
 
   public tokenRegistry: any;
   public tradeDelegate: any;
@@ -26,7 +22,9 @@ export class Context {
   public minerRegistry: any;
   public feeHolder: any;
 
-  constructor(blockNumber: number,
+  constructor(contracts: Contracts,
+              web3: Web3,
+              blockNumber: number,
               blockTimestamp: number,
               tokenRegistryAddress: string,
               tradeDelegateAddress: string,
@@ -38,38 +36,20 @@ export class Context {
               lrcAddress: string,
               tax: Tax,
               feePercentageBase: number) {
+    this.contracts = contracts;
+    this.web3 = web3;
     this.blockNumber = blockNumber;
     this.blockTimestamp = blockTimestamp;
     this.lrcAddress = lrcAddress;
     this.tax = tax;
     this.feePercentageBase = feePercentageBase;
 
-    const ABIPath = "ABI/latest/";
-    const erc20Abi = fs.readFileSync(ABIPath + "ERC20.abi", "ascii");
-    const tokenRegistryAbi = fs.readFileSync(ABIPath + "ITokenRegistry.abi", "ascii");
-    const tradeDelegateAbi = fs.readFileSync(ABIPath + "ITradeDelegate.abi", "ascii");
-    const brokerRegistryAbi = fs.readFileSync(ABIPath + "IBrokerRegistry.abi", "ascii");
-    const orderRegistryAbi = fs.readFileSync(ABIPath + "IOrderRegistry.abi", "ascii");
-    const minerRegistryAbi = fs.readFileSync(ABIPath + "IMinerRegistry.abi", "ascii");
-    const brokerInterceptorAbi = fs.readFileSync(ABIPath + "IBrokerInterceptor.abi", "ascii");
-    const feeHolderAbi = fs.readFileSync(ABIPath + "IFeeHolder.abi", "ascii");
-
-    this.ERC20Contract = web3.eth.contract(JSON.parse(erc20Abi));
-    this.TokenRegistryContract = web3.eth.contract(JSON.parse(tokenRegistryAbi));
-    this.TradeDelegateContract = web3.eth.contract(JSON.parse(tradeDelegateAbi));
-    this.BrokerRegistryContract = web3.eth.contract(JSON.parse(brokerRegistryAbi));
-    this.OrderRegistryContract = web3.eth.contract(JSON.parse(orderRegistryAbi));
-    this.MinerRegistryContract = web3.eth.contract(JSON.parse(minerRegistryAbi));
-    this.FeeHolderContract = web3.eth.contract(JSON.parse(feeHolderAbi));
-    this.BrokerInterceptorContract = web3.eth.contract(JSON.parse(brokerInterceptorAbi));
-
-    this.tokenRegistry = this.TokenRegistryContract.at(tokenRegistryAddress);
-    this.tradeDelegate = this.TradeDelegateContract.at(tradeDelegateAddress);
-    this.orderBrokerRegistry = this.BrokerRegistryContract.at(orderBrokerRegistryAddress);
-    this.minerBrokerRegistry = this.BrokerRegistryContract.at(minerBrokerRegistryAddress);
-    this.orderRegistry = this.OrderRegistryContract.at(orderRegistryAddress);
-    this.minerRegistry = this.MinerRegistryContract.at(minerRegistryAddress);
-    this.feeHolder = this.FeeHolderContract.at(feeHolderAddress);
+    this.tokenRegistry = contracts.TokenRegistryContract.at(tokenRegistryAddress);
+    this.tradeDelegate = contracts.TradeDelegateContract.at(tradeDelegateAddress);
+    this.orderBrokerRegistry = contracts.BrokerRegistryContract.at(orderBrokerRegistryAddress);
+    this.minerBrokerRegistry = contracts.BrokerRegistryContract.at(minerBrokerRegistryAddress);
+    this.orderRegistry = contracts.OrderRegistryContract.at(orderRegistryAddress);
+    this.minerRegistry = contracts.MinerRegistryContract.at(minerRegistryAddress);
+    this.feeHolder = contracts.FeeHolderContract.at(feeHolderAddress);
   }
-
 }

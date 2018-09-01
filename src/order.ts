@@ -1,3 +1,4 @@
+import assert = require("assert");
 import { BigNumber } from "bignumber.js";
 import BN = require("bn.js");
 import ABI = require("ethereumjs-abi");
@@ -172,7 +173,7 @@ export class OrderUtil {
   public async getERC20Spendable(spender: string,
                                  tokenAddress: string,
                                  owner: string) {
-    const token = this.context.ERC20Contract.at(tokenAddress);
+    const token = this.context.contracts.ERC20Contract.at(tokenAddress);
     const balance = await token.balanceOf(owner);
     const allowance = await token.allowance(owner, spender);
     const spendable = Math.min(balance, allowance);
@@ -184,7 +185,7 @@ export class OrderUtil {
                                   broker: string,
                                   brokerInterceptor: string) {
     try {
-      return await this.context.BrokerInterceptorContract.at(brokerInterceptor).getAllowance(
+      return await this.context.contracts.BrokerInterceptorContract.at(brokerInterceptor).getAllowance(
           owner,
           broker,
           tokenAddr,

@@ -36,7 +36,7 @@ const tokenInfos = {
 };
 
 
-const tokenSymbols = tokenInfos.development.map((t) => t.symbol);
+export const tokenSymbols = tokenInfos.development.map((t) => t.symbol);
 
 export const ringsInfoList: RingsInfo[] = [
   {

@@ -1,3 +1,4 @@
+import assert = require("assert");
 
 export class EncodeSpec {
 

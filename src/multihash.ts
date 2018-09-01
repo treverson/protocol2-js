@@ -1,3 +1,4 @@
+import assert = require("assert");
 import { BigNumber } from "bignumber.js";
 import BN = require("bn.js");
 import promisify = require("es6-promisify");
@@ -9,24 +10,12 @@ import { OrderInfo, RingsInfo, SignAlgorithm } from "./types";
 
 export class MultiHashUtil {
 
-  public web3Instance: Web3;
-
-  constructor() {
-    try {
-      if (web3) {
-        this.web3Instance = web3;
-      }
-    } catch (err) {
-      console.log("get web3 instance in Order class failed. err:", err);
-    }
-  }
-
-  public async signOrderAsync(order: OrderInfo) {
+  public async signOrderAsync(web3:Web3, order: OrderInfo) {
     const signer = order.broker ? order.broker : order.owner;
-    return await this.signAsync(order.signAlgorithm, order.hash, signer);
+    return await this.signAsync(web3, order.signAlgorithm, order.hash, signer);
   }
 
-  public async signAsync(algorithm: SignAlgorithm, hash: Buffer, address: string) {
+  public async signAsync(web3: Web3, algorithm: SignAlgorithm, hash: Buffer, address: string) {
     // Default to standard Ethereum signing
     algorithm = Object.is(algorithm, undefined) ? SignAlgorithm.Ethereum : algorithm;
 
@@ -34,7 +23,7 @@ export class MultiHashUtil {
     sig.addNumber(algorithm, 1);
     switch (+algorithm) {
       case SignAlgorithm.Ethereum:
-        await this.signEthereumAsync(sig, hash, address);
+        await this.signEthereumAsync(web3, sig, hash, address);
         return sig.getData();
       case SignAlgorithm.EIP712:
         await this.signEIP712Async(sig, hash, address);
@@ -74,8 +63,8 @@ export class MultiHashUtil {
     }
   }
 
-  private async signEthereumAsync(sig: Bitstream, hash: Buffer, address: string) {
-    const signature = await promisify(this.web3Instance.eth.sign)(address, ethUtil.bufferToHex(hash));
+  private async signEthereumAsync(web3: Web3, sig: Bitstream, hash: Buffer, address: string) {
+    const signature = web3.eth.sign(address, ethUtil.bufferToHex(hash));
     const { v, r, s } = ethUtil.fromRpcSig(signature);
 
     sig.addNumber(1 + 32 + 32, 1);
