@@ -11,12 +11,12 @@ import { ProtocolSimulator } from "../src/protocol_simulator";
 import { ringsInfoList, tokenSymbols } from "./rings_config";
 import { RingsGenerator } from "../src/rings_generator";
 import { Tax } from "../src/tax";
-import { OrderInfo, RingsInfo, SignAlgorithm, TransferItem } from "../src/types";
+import { OrderInfo, RingsInfo, SignAlgorithm, SimulatorReport, TransferItem } from "../src/types";
 import Web3 = require("web3");
 
 // Manually set these for now...
-const exchangeAddress = "0xec806710efe04d1aea5ecc4124a457622d1a7ac9";
-const symbolRegistryAddress = "0x452ee98a9b3598b7d0cc6ee90a87ba799f2ec025";
+const exchangeAddress = "0x137e70b666278bc1699f2ed6d6ace59c1ffb6f94";
+const symbolRegistryAddress = "0x97dbc948829a78b8c2eccd2f3b5c9ff01c6c6f01";
 
 const web3 = new Web3();
 web3.setProvider(new Web3.providers.HttpProvider("http://localhost:8545"));
@@ -24,14 +24,16 @@ const accounts = web3.eth.accounts;
 web3.eth.defaultAccount = accounts[0];
 
 const deployer = accounts[0];
-const miner = accounts[9];
-const orderOwners = accounts.slice(5, 8);
+const miner = accounts[0];
+const feeRecipient = accounts[0];
+const orderOwners = accounts.slice(5, 9);
 const orderDualAuthAddr = accounts.slice(1, 4);
 const transactionOrigin = /*miner*/ accounts[1];
 const broker1 = accounts[1];
 const wallet1 = accounts[3];
 
 let contracts: Contracts;
+let defaultContext: Context;
 
 let exchange: any;
 let tokenRegistry: any;
@@ -57,6 +59,12 @@ let feeHolderAddress: string;
 const tokenSymbolAddrMap = new Map();
 const tokenInstanceMap = new Map();
 const allTokens: any[] = [];
+
+const assertNumberEqualsWithPrecision = (n1: number, n2: number, description: string, precision: number = 12) =>  {
+  const numStr1 = (n1 / 1e18).toFixed(precision);
+  const numStr2 = (n2 / 1e18).toFixed(precision);
+  return assert.equal(Number(numStr1), Number(numStr2), description);
+}
 
 const getDefaultContext = () => {
   const currBlockNumber = web3.eth.blockNumber;
@@ -85,15 +93,15 @@ const initializeTradeDelegate = async () => {
   const walletSplitPercentageBN = await tradeDelegate.walletSplitPercentage();
   walletSplitPercentage = walletSplitPercentageBN.toNumber();
 
-  /*for (const token of allTokens) {
+  for (const token of allTokens) {
     // approve once for all orders:
     for (const orderOwner of orderOwners) {
       await token.approve(tradeDelegate.address, 1e32, {from: orderOwner});
     }
-  }*/
+  }
 };
 
-const setupOrder = async (order: OrderInfo, index: number, limitFeeTokenAmount?: boolean) => {
+const setupOrder = async (order: OrderInfo, index: number) => {
   if (order.owner === undefined) {
     const accountIndex = index % orderOwners.length;
     order.owner = orderOwners[accountIndex];
@@ -151,19 +159,197 @@ const setupOrder = async (order: OrderInfo, index: number, limitFeeTokenAmount?:
   // setup initial balances:
   const tokenS = contracts.DummyTokenContract.at(order.tokenS);
   await tokenS.setBalance(order.owner, (order.balanceS !== undefined) ? order.balanceS : order.amountS);
-  if (!limitFeeTokenAmount) {
-    const feeToken = order.feeToken ? order.feeToken : lrcAddress;
-    const balanceFee = (order.balanceFee !== undefined) ? order.balanceFee : (order.feeAmount * 2);
-    if (feeToken === order.tokenS) {
-      tokenS.addBalance(order.owner, balanceFee);
-    } else {
-      const tokenFee = contracts.DummyTokenContract.at(feeToken);
-      await tokenFee.setBalance(order.owner, balanceFee);
+  const feeToken = order.feeToken ? order.feeToken : lrcAddress;
+  const balanceFee = (order.balanceFee !== undefined) ? order.balanceFee : (order.feeAmount * 2);
+  if (feeToken === order.tokenS) {
+    tokenS.addBalance(order.owner, balanceFee);
+  } else {
+    const tokenFee = contracts.DummyTokenContract.at(feeToken);
+    await tokenFee.setBalance(order.owner, balanceFee);
+  }
+};
+
+const assertEqualsRingsInfo = (ringsInfoA: RingsInfo, ringsInfoB: RingsInfo) => {
+  // Blacklist properties we don't want to check.
+  // We don't whitelist because we might forget to add them here otherwise.
+  const ringsInfoPropertiesToSkip = ["description", "signAlgorithm", "hash", "expected"];
+  const orderPropertiesToSkip = [
+    "maxAmountS", "fillAmountS", "fillAmountB", "fillAmountFee", "splitS", "brokerInterceptor",
+    "valid", "hash", "delegateContract", "signAlgorithm", "dualAuthSignAlgorithm", "index", "lrcAddress",
+    "balanceS", "balanceFee", "tokenSpendableS", "tokenSpendableFee",
+    "brokerSpendableS", "brokerSpendableFee",
+  ];
+  // Make sure to get the keys from both objects to make sure we get all keys defined in both
+  for (const key of [...Object.keys(ringsInfoA), ...Object.keys(ringsInfoB)]) {
+    if (ringsInfoPropertiesToSkip.every((x) => x !== key)) {
+      if (key === "rings") {
+        assert.equal(ringsInfoA.rings.length, ringsInfoB.rings.length,
+                     "Number of rings does not match");
+        for (let r = 0; r < ringsInfoA.rings.length; r++) {
+          assert.equal(ringsInfoA.rings[r].length, ringsInfoB.rings[r].length,
+                       "Number of orders in rings does not match");
+          for (let o = 0; o < ringsInfoA.rings[r].length; o++) {
+            assert.equal(ringsInfoA.rings[r][o], ringsInfoB.rings[r][o],
+                         "Order indices in rings do not match");
+          }
+        }
+      } else if (key === "orders") {
+        assert.equal(ringsInfoA.orders.length, ringsInfoB.orders.length,
+                     "Number of orders does not match");
+        for (let o = 0; o < ringsInfoA.orders.length; o++) {
+          for (const orderKey of [...Object.keys(ringsInfoA.orders[o]), ...Object.keys(ringsInfoB.orders[o])]) {
+            if (orderPropertiesToSkip.every((x) => x !== orderKey)) {
+              assert.equal(ringsInfoA.orders[o][orderKey], ringsInfoB.orders[o][orderKey],
+                           "Order property '" + orderKey + "' does not match");
+            }
+          }
+        }
+      } else {
+          assert.equal(ringsInfoA[key], ringsInfoB[key],
+                       "RingInfo property '" + key + "' does not match");
+      }
     }
   }
 };
 
-const submitRings = async (context: Context, ringsInfo: RingsInfo, eventFromBlock: number) => {
+interface OrderSettlement {
+  amountS: number;
+  amountB: number;
+  amountFee: number;
+}
+
+const caclulateOrderSettlement = (order: OrderInfo,
+                                  filledFraction: number,
+                                  P2P: boolean,
+                                  useFeeToken: boolean) => {
+  // Expected payments for the given fraction
+  let expectedAmountS = order.amountS * filledFraction;
+  let expectedAmountFee = order.feeAmount * filledFraction;
+  let expectedAmountB = Math.floor(expectedAmountS * order.amountB / order.amountS);
+  let expectedAmountFeeB = Math.floor(expectedAmountB * order.feePercentage / defaultContext.feePercentageBase);
+
+  // Waive fees before tax
+  if (order.waiveFeePercentage > 0) {
+    expectedAmountFee -= Math.floor(expectedAmountFee * order.waiveFeePercentage / defaultContext.feePercentageBase);
+    expectedAmountFeeB -= Math.floor(expectedAmountFeeB * order.waiveFeePercentage / defaultContext.feePercentageBase);
+  }
+
+  // Add tax to the fees
+  const taxFee = tax.calculateTax(order.feeToken, false, false, expectedAmountFee);
+  const taxB = tax.calculateTax(order.tokenB, false, false, expectedAmountFeeB);
+
+  expectedAmountFee += taxFee;
+  expectedAmountFeeB += taxB;
+
+  if (useFeeToken) {
+    expectedAmountFeeB = 0;
+  } else {
+    expectedAmountFee = 0;
+  }
+
+  expectedAmountB -= expectedAmountFeeB;
+
+  // console.log("expectedAmountS: " + expectedAmountS / 1e18);
+  // console.log("expectedAmountB: " + expectedAmountB / 1e18);
+  // console.log("expectedAmountFee: " + expectedAmountFee / 1e18);
+
+  const orderSettlement: OrderSettlement = {
+    amountS: expectedAmountS,
+    amountB: expectedAmountB,
+    amountFee: expectedAmountFee,
+  };
+  return orderSettlement;
+};
+
+const assertRings = (reverted: boolean,
+                     report: SimulatorReport,
+                     ringsInfo: RingsInfo) => {
+  /*if (!ringsInfo.expected) {
+    return;
+  }*/
+
+  // Check if the transaction should revert
+  assert.equal(reverted, ringsInfo.expected.revert, "Transaction should revert when expected");
+  if(reverted) {
+    return;
+  }
+
+  // Copy balances before
+  const expectedBalances: { [id: string]: any; } = {};
+  for (const token of Object.keys(report.balancesBefore)) {
+    for (const owner of Object.keys(report.balancesBefore[token])) {
+      if (!expectedBalances[token]) {
+        expectedBalances[token] = {};
+      }
+      expectedBalances[token][owner] = report.balancesBefore[token][owner];
+    }
+  }
+  // Intialize filled amounts
+  const expectedfilledAmounts: { [id: string]: any; } = {};
+  for (const order of ringsInfo.orders) {
+    const orderHash = order.hash.toString("hex");
+    if (!expectedfilledAmounts[orderHash]) {
+      expectedfilledAmounts[orderHash] = 0;
+    }
+  }
+
+  // Simulate order settlement in rings using the given expectations
+  for (const [r, ring] of ringsInfo.rings.entries()) {
+    if (!ringsInfo.expected.rings[r].mined) {
+      continue;
+    }
+    for (const [o, orderIndex] of ring.entries()) {
+      const order = ringsInfo.orders[orderIndex];
+      const orderSettlement = caclulateOrderSettlement(order,
+                                                       ringsInfo.expected.rings[r].orders[o].filledFraction,
+                                                       ringsInfo.expected.rings[r].P2P,
+                                                       ringsInfo.expected.rings[r].orders[o].useFeeToken);
+      expectedBalances[order.tokenS][order.owner] -= orderSettlement.amountS;
+      expectedBalances[order.tokenB][order.tokenRecipient] += orderSettlement.amountB;
+      expectedBalances[order.feeToken][order.owner] -= orderSettlement.amountFee;
+
+      const expectedFilledAmount = order.amountS * ringsInfo.expected.rings[r].orders[o].filledFraction;
+      expectedfilledAmounts[order.hash.toString("hex")] += expectedFilledAmount;
+    }
+  }
+
+  // Check balances
+  for (const token of Object.keys(expectedBalances)) {
+    for (const owner of Object.keys(expectedBalances[token])) {
+      // console.log("[S]" + owner + ":" + token + " = " + report.balancesAfter[token][owner] / 1e18);
+      // console.log("[E]" + owner + ":" + token + " = " + expectedBalances[token][owner] / 1e18);
+      assertNumberEqualsWithPrecision(report.balancesAfter[token][owner], expectedBalances[token][owner],
+                                      "Balance should match expected value");
+    }
+  }
+  // Check filled
+  for (const order of ringsInfo.orders) {
+    const orderHash = order.hash.toString("hex");
+    assertNumberEqualsWithPrecision(report.filledAmounts[orderHash], expectedfilledAmounts[orderHash],
+                                    "Order filled amount should match expected value");
+  }
+};
+
+const setupRings = async (ringsInfo: RingsInfo) => {
+  if (ringsInfo.transactionOrigin === undefined) {
+    ringsInfo.transactionOrigin = transactionOrigin;
+    ringsInfo.feeRecipient = feeRecipient;
+    ringsInfo.miner = miner;
+  } else {
+    if (!ringsInfo.transactionOrigin.startsWith("0x")) {
+      const accountIndex = parseInt(ringsInfo.transactionOrigin, 10);
+      assert(accountIndex >= 0 && accountIndex < orderOwners.length, "Invalid owner index");
+      ringsInfo.transactionOrigin = orderOwners[accountIndex];
+    }
+    ringsInfo.feeRecipient = undefined;
+    ringsInfo.miner = undefined;
+}
+  for (const [i, order] of ringsInfo.orders.entries()) {
+    await setupOrder(order, i);
+  }
+};
+
+const submitRings = async (context: Context, ringsInfo: RingsInfo) => {
   const ringsGenerator = new RingsGenerator(context);
   await ringsGenerator.setupRingsAsync(ringsInfo);
   const bs = ringsGenerator.toSubmitableParam(ringsInfo);
@@ -171,23 +357,28 @@ const submitRings = async (context: Context, ringsInfo: RingsInfo, eventFromBloc
   const simulator = new ProtocolSimulator(walletSplitPercentage, context);
   const txOrigin = ringsInfo.transactionOrigin ? ringsInfo.transactionOrigin : transactionOrigin;
   const deserializedRingsInfo = simulator.deserialize(bs, txOrigin);
-  // assertEqualsRingsInfo(deserializedRingsInfo, ringsInfo);
-  let shouldThrow = false;
+  assertEqualsRingsInfo(deserializedRingsInfo, ringsInfo);
+  let reverted = false;
   let report: any = {
     ringMinedEvents: [],
     transferItems: [],
     feeBalances: [],
     filledAmounts: [],
+    balancesBefore: [],
+    balancesAfter: [],
   };
-  //try {
-  report = await simulator.simulateAndReport(deserializedRingsInfo);
-  /*} catch {
-    shouldThrow = true;
-  }*/
-  return report;
+  try {
+    report = await simulator.simulateAndReport(deserializedRingsInfo);
+    reverted = false;
+  } catch {
+    reverted = true;
+  }
+  // report = await simulator.simulateAndReport(deserializedRingsInfo);
+  return {reverted, report};
 };
 
 before( async () => {
+  console.log("Setting up simulator...");
   contracts = new Contracts(web3);
   const exchangeImpl = contracts.ExchangeImplContract.at(exchangeAddress);
   symbolRegistry = contracts.SymbolRegistryContract.at(symbolRegistryAddress);
@@ -232,35 +423,18 @@ before( async () => {
                 wethAddress);
 
   await initializeTradeDelegate();
+
+  defaultContext = getDefaultContext();
+
+  console.log("Done.");
 });
 
-it("simulate and report", async () => {
-  const ringsInfo: RingsInfo = {
-    rings: [[0, 1]],
-    orders: [
-      {
-        tokenS: tokenSymbols[1],
-        tokenB: tokenSymbols[2],
-        amountS: 35e17,
-        amountB: 22e17,
-      },
-      {
-        tokenS: tokenSymbols[2],
-        tokenB: tokenSymbols[1],
-        amountS: 23e17,
-        amountB: 31e17,
-      },
-    ],
-    transactionOrigin,
-    miner,
-    feeRecipient: miner,
-  };
-
-  for (const [i, order] of ringsInfo.orders.entries()) {
-    await setupOrder(order, i);
+describe("submitRing", () => {
+  for (const ringsInfo of ringsInfoList) {
+    it(ringsInfo.description, async () => {
+      await setupRings(ringsInfo);
+      const {reverted, report} = await submitRings(defaultContext, ringsInfo);
+      assertRings(reverted, report, ringsInfo);
+    });
   }
-
-  const context = getDefaultContext();
-  const report = await submitRings(context, ringsInfo, web3.eth.blockNumber);
-  console.log(report);
 });

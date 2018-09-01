@@ -94,6 +94,22 @@ export interface RingsSubmitParam {
   bytesList: string[];
 }
 
+export interface OrderExpectation {
+  filledFraction: number;
+  useFeeToken: boolean;
+}
+
+export interface RingExpectation {
+  mined: boolean;
+  P2P?: boolean;
+  orders?: OrderExpectation[];
+}
+
+export interface TransactionExpectation {
+  revert: boolean;
+  rings?: RingExpectation[];
+}
+
 export interface RingsInfo {
   description?: string;
   feeRecipient?: string; // spec value: 1
@@ -106,6 +122,8 @@ export interface RingsInfo {
   hash?: Buffer;
   transactionOrigin?: string;
 
+  expected?: TransactionExpectation;
+
   [key: string]: any;
 }
 
@@ -114,6 +132,8 @@ export interface SimulatorReport {
   transferItems: TransferItem[];
   feeBalances: { [id: string]: any; };
   filledAmounts: { [hash: string]: number; };
+  balancesBefore: { [id: string]: any; };
+  balancesAfter: { [id: string]: any; };
 }
 
 export interface TransferItem {

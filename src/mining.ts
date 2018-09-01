@@ -1,3 +1,4 @@
+import assert = require("assert");
 import BN = require("bn.js");
 import ABI = require("ethereumjs-abi");
 import { Context } from "./context";
