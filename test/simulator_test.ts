@@ -223,7 +223,7 @@ interface OrderSettlement {
   amountTaxB: number;
 }
 
-const caclulateOrderSettlement = (order: OrderInfo,
+const calculateOrderSettlement = (order: OrderInfo,
                                   orderExpectation: OrderExpectation,
                                   P2P: boolean) => {
   if (P2P) {
@@ -337,7 +337,7 @@ const assertRings = (reverted: boolean,
     }
     for (const [o, orderIndex] of ring.entries()) {
       const order = ringsInfo.orders[orderIndex];
-      const orderSettlement = caclulateOrderSettlement(order,
+      const orderSettlement = calculateOrderSettlement(order,
                                                        ringsInfo.expected.rings[r].orders[o],
                                                        ringsInfo.expected.rings[r].P2P);
 
