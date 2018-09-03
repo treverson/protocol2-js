@@ -171,6 +171,7 @@ export class Ring {
 
       // The taker gets the margin
       order.splitS = 0;
+      order.fillAmountS = prevOrder.fillAmountB;
     } else {
       // Calculate matching fees
       order.fillAmountFee = Math.floor(order.feeAmount * order.fillAmountS / order.amountS);
