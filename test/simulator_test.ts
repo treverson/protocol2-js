@@ -11,12 +11,12 @@ import { ProtocolSimulator } from "../src/protocol_simulator";
 import { ringsInfoList, tokenSymbols } from "./rings_config";
 import { RingsGenerator } from "../src/rings_generator";
 import { Tax } from "../src/tax";
-import { OrderInfo, RingsInfo, SignAlgorithm, SimulatorReport, TransferItem } from "../src/types";
+import { OrderExpectation, OrderInfo, RingsInfo, SignAlgorithm, SimulatorReport, TransferItem } from "../src/types";
 import Web3 = require("web3");
 
 // Manually set these for now...
-const exchangeAddress = "0x137e70b666278bc1699f2ed6d6ace59c1ffb6f94";
-const symbolRegistryAddress = "0x97dbc948829a78b8c2eccd2f3b5c9ff01c6c6f01";
+const exchangeAddress = "0x6bc55ad52ec17015a0fa70679497bfd04bb683ff";
+const symbolRegistryAddress = "0xa999a85add2a467d28d79dcba903d5fdb16a0917";
 
 const web3 = new Web3();
 web3.setProvider(new Web3.providers.HttpProvider("http://localhost:8545"));
@@ -216,60 +216,97 @@ interface OrderSettlement {
   amountS: number;
   amountB: number;
   amountFee: number;
+  amountFeeS: number;
+  amountFeeB: number;
+  amountTaxFee: number;
+  amountTaxS: number;
+  amountTaxB: number;
 }
 
 const caclulateOrderSettlement = (order: OrderInfo,
-                                  filledFraction: number,
-                                  P2P: boolean,
-                                  useFeeToken: boolean) => {
-  // Expected payments for the given fraction
-  let expectedAmountS = order.amountS * filledFraction;
-  let expectedAmountFee = order.feeAmount * filledFraction;
-  let expectedAmountB = Math.floor(expectedAmountS * order.amountB / order.amountS);
-  let expectedAmountFeeB = Math.floor(expectedAmountB * order.feePercentage / defaultContext.feePercentageBase);
+                                  orderExpectation: OrderExpectation,
+                                  P2P: boolean) => {
+  if (P2P) {
+    // Fill amounts
+    const amountS = order.amountS * orderExpectation.filledFraction;
+    let amountB = order.amountB * orderExpectation.filledFraction;
+    // Taker gets the margin
+    if (orderExpectation.marginP2PFraction) {
+      amountB += order.amountB * orderExpectation.marginP2PFraction;
+    }
 
-  // Waive fees before tax
-  if (order.waiveFeePercentage > 0) {
-    expectedAmountFee -= Math.floor(expectedAmountFee * order.waiveFeePercentage / defaultContext.feePercentageBase);
-    expectedAmountFeeB -= Math.floor(expectedAmountFeeB * order.waiveFeePercentage / defaultContext.feePercentageBase);
-  }
+    // Fees
+    let amountFeeS = Math.floor((amountS * defaultContext.feePercentageBase) /
+                                (defaultContext.feePercentageBase - order.tokenSFeePercentage)) - amountS;
+    let amountFeeB = Math.floor(amountB * order.tokenBFeePercentage / defaultContext.feePercentageBase);
+    // No fees need to be paid when the order has no wallet
+    if (!order.walletAddr) {
+      amountFeeS = 0;
+      amountFeeB = 0;
+    }
 
-  // Add tax to the fees
-  const taxFee = tax.calculateTax(order.feeToken, false, false, expectedAmountFee);
-  const taxB = tax.calculateTax(order.tokenB, false, false, expectedAmountFeeB);
+    // Taxes
+    const amountTaxS = tax.calculateTax(order.tokenS, false, true, amountFeeS);
+    const amountTaxB = tax.calculateTax(order.tokenB, false, true, amountFeeB);
 
-  expectedAmountFee += taxFee;
-  expectedAmountFeeB += taxB;
-
-  if (useFeeToken) {
-    expectedAmountFeeB = 0;
+    const orderSettlement: OrderSettlement = {
+      amountS,
+      amountB,
+      amountFee: 0,
+      amountFeeS,
+      amountFeeB,
+      amountTaxFee: 0,
+      amountTaxS,
+      amountTaxB,
+    };
+    return orderSettlement;
   } else {
-    expectedAmountFee = 0;
+    // Fill amounts
+    let amountS = order.amountS * orderExpectation.filledFraction;
+    let amountB = order.amountB * orderExpectation.filledFraction;
+
+    // Fees
+    let amountFee = order.feeAmount * orderExpectation.filledFraction;
+    let amountFeeB = Math.floor(amountB * order.feePercentage / defaultContext.feePercentageBase);
+    // Waive fees before tax
+    if (order.waiveFeePercentage > 0) {
+      amountFee -= Math.floor(amountFee * order.waiveFeePercentage / defaultContext.feePercentageBase);
+      amountFeeB -= Math.floor(amountFeeB * order.waiveFeePercentage / defaultContext.feePercentageBase);
+    } else if(order.waiveFeePercentage < 0) {
+      amountFee = 0;
+      amountFeeB = 0;
+    }
+    // Pay in either feeToken or tokenB
+    if (orderExpectation.payFeeInTokenB) {
+      amountFee = 0;
+    } else {
+      amountFeeB = 0;
+    }
+
+    // Taxes
+    const amountTaxFee = tax.calculateTax(order.feeToken, false, false, amountFee);
+    const amountTaxB = tax.calculateTax(order.tokenB, false, false, amountFeeB);
+
+    const orderSettlement: OrderSettlement = {
+      amountS,
+      amountB,
+      amountFee,
+      amountFeeS: 0,
+      amountFeeB,
+      amountTaxFee,
+      amountTaxS: 0,
+      amountTaxB,
+    };
+    return orderSettlement;
   }
-
-  expectedAmountB -= expectedAmountFeeB;
-
-  // console.log("expectedAmountS: " + expectedAmountS / 1e18);
-  // console.log("expectedAmountB: " + expectedAmountB / 1e18);
-  // console.log("expectedAmountFee: " + expectedAmountFee / 1e18);
-
-  const orderSettlement: OrderSettlement = {
-    amountS: expectedAmountS,
-    amountB: expectedAmountB,
-    amountFee: expectedAmountFee,
-  };
-  return orderSettlement;
 };
 
 const assertRings = (reverted: boolean,
                      report: SimulatorReport,
                      ringsInfo: RingsInfo) => {
-  /*if (!ringsInfo.expected) {
-    return;
-  }*/
-
   // Check if the transaction should revert
-  assert.equal(reverted, ringsInfo.expected.revert, "Transaction should revert when expected");
+  assert.equal(reverted, ringsInfo.expected.revert ? ringsInfo.expected.revert : false,
+               "Transaction should revert when expected");
   if(reverted) {
     return;
   }
@@ -295,19 +332,27 @@ const assertRings = (reverted: boolean,
 
   // Simulate order settlement in rings using the given expectations
   for (const [r, ring] of ringsInfo.rings.entries()) {
-    if (!ringsInfo.expected.rings[r].mined) {
+    if (ringsInfo.expected.rings[r].fail) {
       continue;
     }
     for (const [o, orderIndex] of ring.entries()) {
       const order = ringsInfo.orders[orderIndex];
       const orderSettlement = caclulateOrderSettlement(order,
-                                                       ringsInfo.expected.rings[r].orders[o].filledFraction,
-                                                       ringsInfo.expected.rings[r].P2P,
-                                                       ringsInfo.expected.rings[r].orders[o].useFeeToken);
-      expectedBalances[order.tokenS][order.owner] -= orderSettlement.amountS;
-      expectedBalances[order.tokenB][order.tokenRecipient] += orderSettlement.amountB;
-      expectedBalances[order.feeToken][order.owner] -= orderSettlement.amountFee;
+                                                       ringsInfo.expected.rings[r].orders[o],
+                                                       ringsInfo.expected.rings[r].P2P);
 
+      // Balances
+      const totalS = orderSettlement.amountS + orderSettlement.amountFeeS + orderSettlement.amountTaxS;
+      const totalB = orderSettlement.amountB - orderSettlement.amountFeeB - orderSettlement.amountTaxB;
+      const totalFee = orderSettlement.amountFee + orderSettlement.amountTaxFee;
+      // console.log("totalS: " + totalS / 1e18);
+      // console.log("totalB: " + totalB / 1e18);
+      // console.log("totalFee: " + totalFee / 1e18);
+      expectedBalances[order.tokenS][order.owner] -= totalS;
+      expectedBalances[order.tokenB][order.tokenRecipient] += totalB;
+      expectedBalances[order.feeToken][order.owner] -= totalFee;
+
+      // Filled
       const expectedFilledAmount = order.amountS * ringsInfo.expected.rings[r].orders[o].filledFraction;
       expectedfilledAmounts[order.hash.toString("hex")] += expectedFilledAmount;
     }
@@ -316,8 +361,8 @@ const assertRings = (reverted: boolean,
   // Check balances
   for (const token of Object.keys(expectedBalances)) {
     for (const owner of Object.keys(expectedBalances[token])) {
-      // console.log("[S]" + owner + ":" + token + " = " + report.balancesAfter[token][owner] / 1e18);
-      // console.log("[E]" + owner + ":" + token + " = " + expectedBalances[token][owner] / 1e18);
+      // console.log("[Sim]" + owner + ":" + token + " = " + report.balancesAfter[token][owner] / 1e18);
+      // console.log("[Exp]" + owner + ":" + token + " = " + expectedBalances[token][owner] / 1e18);
       assertNumberEqualsWithPrecision(report.balancesAfter[token][owner], expectedBalances[token][owner],
                                       "Balance should match expected value");
     }
@@ -429,7 +474,7 @@ before( async () => {
   console.log("Done.");
 });
 
-describe("submitRing", () => {
+describe("simulate and report", () => {
   for (const ringsInfo of ringsInfoList) {
     it(ringsInfo.description, async () => {
       await setupRings(ringsInfo);

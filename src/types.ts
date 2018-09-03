@@ -96,17 +96,18 @@ export interface RingsSubmitParam {
 
 export interface OrderExpectation {
   filledFraction: number;
-  useFeeToken: boolean;
+  payFeeInTokenB?: boolean;
+  marginP2PFraction?: number;
 }
 
 export interface RingExpectation {
-  mined: boolean;
+  fail?: boolean;
   P2P?: boolean;
   orders?: OrderExpectation[];
 }
 
 export interface TransactionExpectation {
-  revert: boolean;
+  revert?: boolean;
   rings?: RingExpectation[];
 }
 

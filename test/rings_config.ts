@@ -62,19 +62,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -102,19 +97,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.5,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -145,19 +135,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -188,19 +173,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -229,19 +209,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 0.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -272,19 +247,15 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: false,
+              payFeeInTokenB: true,
             },
           ]
         },
@@ -316,19 +287,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -360,19 +326,15 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.75,
-              useFeeToken: true,
             },
             {
               filledFraction: 0.75,
-              useFeeToken: false,
+              payFeeInTokenB: true,
             },
           ]
         },
@@ -403,19 +365,14 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -449,19 +406,15 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: false,
+              payFeeInTokenB: true,
             },
           ]
         },
@@ -496,23 +449,17 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -547,23 +494,17 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
-              filledFraction: (10.0 / 5.0) * (3.0 / 45.0),
-              useFeeToken: true,
+              filledFraction: (3.0 * (5.0 / 45.0) * (100.0 / 10.0)) / 100.0,
             },
             {
-              filledFraction: 3.0/45.0,
-              useFeeToken: true,
+              filledFraction: (3.0 * (5.0 / 45.0)) / 5.0,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -600,30 +541,24 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
       ]
     },
   },
-/*
+
   {
     description: "simple single 3-size ring, miner splits fees with order",
     rings: [[0, 1, 2]],
@@ -654,8 +589,25 @@ export const ringsInfoList: RingsInfo[] = [
         waiveFeePercentage: 250, // = 25%
       },
     ],
+    expected: {
+      rings: [
+        {
+          orders: [
+            {
+              filledFraction: 1.0,
+            },
+            {
+              filledFraction: 1.0,
+            },
+            {
+              filledFraction: 1.0,
+            },
+          ]
+        },
+      ]
+    },
   },
-*/
+
   {
     description: "simple single 3-size ring, miner splits more than 100% of fees with orders",
     rings: [[0, 1, 2]],
@@ -687,10 +639,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -723,10 +674,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -766,33 +716,24 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.5,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -842,33 +783,25 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 1.0,
-              useFeeToken: false,
+              payFeeInTokenB: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
@@ -903,40 +836,31 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.5,
-              useFeeToken: true,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
         {
-          mined: true,
-          P2P: false,
           orders: [
             {
               filledFraction: 0.5,
-              useFeeToken: false,
             },
             {
               filledFraction: 1.0,
-              useFeeToken: true,
             },
           ]
         },
       ]
     },
   },
-/*
+
   {
     description: "P2P: single 2-size ring, prices match exactly",
     transactionOrigin: "1",
@@ -961,6 +885,21 @@ export const ringsInfoList: RingsInfo[] = [
         tokenBFeePercentage: 25,  // == 2.5%
       },
     ],
+    expected: {
+      rings: [
+        {
+          P2P: true,
+          orders: [
+            {
+              filledFraction: 0.01,
+            },
+            {
+              filledFraction: 1.0,
+            },
+          ]
+        },
+      ]
+    },
   },
 
   {
@@ -987,10 +926,26 @@ export const ringsInfoList: RingsInfo[] = [
         tokenBFeePercentage: 25,  // == 2.5%
       },
     ],
+    expected: {
+      rings: [
+        {
+          P2P: true,
+          orders: [
+            {
+              filledFraction: 0.01,
+              marginP2PFraction: 0.01,
+            },
+            {
+              filledFraction: 1.0,
+            },
+          ]
+        },
+      ]
+    },
   },
 
   {
-    description: "P2P: single 2-size ring, insufficient funds",
+    description: "P2P: single 2-size ring, partial fill",
     transactionOrigin: "1",
     rings: [[0, 1]],
     orders: [
@@ -1008,14 +963,29 @@ export const ringsInfoList: RingsInfo[] = [
         owner: "1",
         tokenS: tokenSymbols[2],
         tokenB: tokenSymbols[1],
-        amountS: 0.02e18,
+        amountS: 0.01e18,
         amountB: 1e18,
-        tokenSFeePercentage: 25,  // == 2.5%
-        balanceS: 0.012e18,
+        tokenSFeePercentage: 10,  // == 1.0%
+        balanceS: 0.005e18,
       },
     ],
+    expected: {
+      rings: [
+        {
+          P2P: true,
+          orders: [
+            {
+              filledFraction: 0.01 * (0.005 * (1 - (0.01 * (1 + 0.02))) / 0.01),
+            },
+            {
+              filledFraction: 0.005 * (1 - (0.01 * (1 + 0.02))) / 0.01,
+            },
+          ]
+        },
+      ]
+    },
   },
-*/
+
   {
     description: "P2P: invalid tokenSFeePercentage",
     transactionOrigin: "0",
@@ -1041,10 +1011,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -1071,10 +1040,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -1093,10 +1061,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -1150,10 +1117,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -1182,10 +1148,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
@@ -1214,10 +1179,9 @@ export const ringsInfoList: RingsInfo[] = [
       },
     ],
     expected: {
-      revert: false,
       rings: [
         {
-          mined: false,
+          fail: true,
         },
       ]
     },
